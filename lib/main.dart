@@ -13,6 +13,7 @@ import 'views/profile_screen.dart';
 import 'views/generate_report_page.dart';
 import 'views/onboarding_page.dart';
 import 'services/fcm_service.dart';
+
 final navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
@@ -22,7 +23,8 @@ void main() async {
   );
   // Handle notification taps globally (after Firebase init)
   FCMService.handleNotificationTap((alertId, txnId) {
-    navigatorKey.currentState?.pushNamed('/fraudalerts', arguments: {'alertId': alertId, 'txnId': txnId});
+    navigatorKey.currentState?.pushNamed('/fraudalerts',
+        arguments: {'alertId': alertId, 'txnId': txnId});
   });
   runApp(const MyApp());
 }
@@ -33,6 +35,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       navigatorKey: navigatorKey,
       title: 'Credit Card Fraud Detection',
       theme: ThemeData(
@@ -86,10 +89,12 @@ class MyApp extends StatelessWidget {
       initialRoute: '/login',
       routes: {
         '/login': (context) => LoginPage(
-              onRegister: () => Navigator.pushReplacementNamed(context, '/register'),
+              onRegister: () =>
+                  Navigator.pushReplacementNamed(context, '/register'),
             ),
         '/register': (context) => RegisterPage(
-              onBackToLogin: () => Navigator.pushReplacementNamed(context, '/login'),
+              onBackToLogin: () =>
+                  Navigator.pushReplacementNamed(context, '/login'),
             ),
         '/dashboard': (context) => const DashboardPage(),
         '/addcards': (context) => const CreditCardsPage(),

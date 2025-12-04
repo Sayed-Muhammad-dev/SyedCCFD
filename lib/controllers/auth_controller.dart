@@ -1,14 +1,22 @@
-
 import '../services/firebase_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthController {
+  final FirebaseService _service;
+
+  AuthController({FirebaseService? service})
+      : _service = service ?? FirebaseService();
+
   /// Returns the current Firebase user.
   Future<User?> getCurrentUser() async {
     return FirebaseAuth.instance.currentUser;
   }
-  /// Returns `null` on success, or a String error message on failure.
-  Future<String?> login({required String email, required String password}) async {
+
+  /// LOGIN: Returns null on success, or a String error on failure.
+  Future<String?> login({
+    required String email,
+    required String password,
+  }) async {
     try {
       await _service.loginWithEmail(email: email, password: password);
       return null;
@@ -16,11 +24,12 @@ class AuthController {
       return e.toString();
     }
   }
-  final FirebaseService _service;
 
-  AuthController({FirebaseService? service}) : _service = service ?? FirebaseService();
-
-  /// Returns `null` on success, or a String error message on failure.
+  /// REGISTER + SEND VERIFICATION EMAIL
+  ///
+  /// Returns:
+  /// null → success
+  /// String → error message
   Future<String?> register({
     required String username,
     required String email,
@@ -33,6 +42,7 @@ class AuthController {
     if (exists) return 'Username already exists';
 
     try {
+      // Create user account
       await _service.registerWithEmail(
         email: email,
         password: password,
@@ -40,12 +50,23 @@ class AuthController {
         firstName: firstName,
         lastName: lastName,
       );
+
+      // Send verification email
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await user.sendEmailVerification();
+      }
+
       return null; // success
     } on FirebaseException catch (e) {
-      // Firestore or Auth error
       return 'Registration failed: ${e.message}';
     } catch (e) {
       return 'Registration failed: $e';
     }
+  }
+
+  /// LOGOUT
+  Future<void> logout() async {
+    await FirebaseAuth.instance.signOut();
   }
 }

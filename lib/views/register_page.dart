@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../controllers/auth_controller.dart';
+import 'dart:async';
 
 class RegisterPage extends StatefulWidget {
   final VoidCallback onBackToLogin;
   const RegisterPage({required this.onBackToLogin, Key? key}) : super(key: key);
+
   @override
   State<RegisterPage> createState() => _RegisterPageState();
 }
@@ -18,22 +21,44 @@ class _RegisterPageState extends State<RegisterPage> {
   final c = TextEditingController();
   final auth = AuthController();
 
-  double s = 0;
-  Map<String, bool> chk = {'len':false,'upper':false,'lower':false,'num':false,'special':false};
+  Timer? verificationTimer;
   bool loading = false;
 
-  void check(String x){
-    final a = x.length>=8;
+  double s = 0;
+  Map<String, bool> chk = {
+    'len': false,
+    'upper': false,
+    'lower': false,
+    'num': false,
+    'special': false
+  };
+
+  // PASSWORD CHECK
+  void check(String x) {
+    final a = x.length >= 8;
     final b = RegExp(r'[A-Z]').hasMatch(x);
     final c = RegExp(r'[a-z]').hasMatch(x);
     final d = RegExp(r'[0-9]').hasMatch(x);
     final e = RegExp(r'[^A-Za-z0-9]').hasMatch(x);
-    setState((){chk['len']=a;chk['upper']=b;chk['lower']=c;chk['num']=d;chk['special']=e;s=[a,b,c,d,e].where((v)=>v).length/5;});
+
+    setState(() {
+      chk['len'] = a;
+      chk['upper'] = b;
+      chk['lower'] = c;
+      chk['num'] = d;
+      chk['special'] = e;
+      s = [a, b, c, d, e].where((v) => v).length / 5;
+    });
   }
 
+  // -------------------------------
+  // REGISTER + START VERIFICATION CHECK
+  // -------------------------------
   Future<void> submit() async {
-    if(!k.currentState!.validate()) return;
-    setState(()=>loading=true);
+    if (!k.currentState!.validate()) return;
+
+    setState(() => loading = true);
+
     final err = await auth.register(
       username: u.text.trim(),
       email: e.text.trim(),
@@ -41,26 +66,74 @@ class _RegisterPageState extends State<RegisterPage> {
       firstName: f.text.trim(),
       lastName: l.text.trim(),
     );
-    setState(()=>loading=false);
-    if(err!=null){ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));return;}
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account created')));
-    // Navigate to onboarding for new users
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/onboarding');
+
+    setState(() => loading = false);
+
+    // Registration failed
+    if (err != null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      return;
     }
+
+    // Success
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+          content: Text('Verification email sent. Please check your inbox.')),
+    );
+
+    // Redirect user to Mail App
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Opening your email app...")),
+    );
+
+    // Open email app
+    Future.delayed(const Duration(milliseconds: 500), () async {
+      await FirebaseAuth.instance.currentUser?.reload();
+    });
+
+    // Start timer to auto-detect verification
+    verificationTimer =
+        Timer.periodic(const Duration(seconds: 3), (timer) async {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      await user.reload();
+
+      if (user.emailVerified) {
+        timer.cancel();
+
+        // Redirect to Login
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Email verified! Please log in.")),
+          );
+          widget.onBackToLogin(); // Redirect to Login Page
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    verificationTimer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [theme.primary.withOpacity(.15), theme.secondary.withOpacity(.1)],
+            colors: [
+              theme.primary.withOpacity(.15),
+              theme.secondary.withOpacity(.1)
+            ],
             begin: Alignment.topLeft,
-            end: Alignment.bottomRight
-          )
+            end: Alignment.bottomRight,
+          ),
         ),
         child: Center(
           child: SingleChildScrollView(
@@ -71,8 +144,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 color: theme.surface.withOpacity(.85),
                 borderRadius: BorderRadius.circular(28),
                 boxShadow: [
-                  BoxShadow(color: theme.primary.withOpacity(.12), blurRadius: 20, offset: const Offset(0,10))
-                ]
+                  BoxShadow(
+                    color: theme.primary.withOpacity(.12),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  )
+                ],
               ),
               width: 420,
               child: Form(
@@ -80,21 +157,75 @@ class _RegisterPageState extends State<RegisterPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Create your account", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                    Text("Create your account",
+                        style: TextStyle(
+                            fontSize: 28, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 18),
-                    TextFormField(controller: u, decoration: const InputDecoration(labelText:"Username"), validator:(v)=>v==null||v.isEmpty?'Required':null),
-                    TextFormField(controller: e, decoration: const InputDecoration(labelText:"Email"), keyboardType: TextInputType.emailAddress,
-                      validator:(v){if(v==null||v.isEmpty)return'Required';if(!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v))return'Invalid';return null;}),
-                    Row(children:[
-                      Expanded(child:TextFormField(controller:f,decoration:const InputDecoration(labelText:"First Name"),validator:(v)=>v==null||v.isEmpty?'Required':null)),
-                      const SizedBox(width:12),
-                      Expanded(child:TextFormField(controller:l,decoration:const InputDecoration(labelText:"Last Name"),validator:(v)=>v==null||v.isEmpty?'Required':null)),
-                    ]),
-                    TextFormField(controller:p,decoration:const InputDecoration(labelText:"Password"),obscureText:true,onChanged:check,
-                      validator:(v){if(v==null||v.isEmpty)return'Required';if(s<1)return'Password too weak';return null;}),
-                    const SizedBox(height:10),
+
+                    // Username
+                    TextFormField(
+                      controller: u,
+                      decoration: const InputDecoration(labelText: "Username"),
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Required' : null,
+                    ),
+
+                    // Email
+                    TextFormField(
+                      controller: e,
+                      decoration: const InputDecoration(labelText: "Email"),
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Required';
+                        if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(v)) {
+                          return 'Invalid';
+                        }
+                        return null;
+                      },
+                    ),
+
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: f,
+                            decoration:
+                                const InputDecoration(labelText: "First Name"),
+                            validator: (v) =>
+                                v == null || v.isEmpty ? 'Required' : null,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextFormField(
+                            controller: l,
+                            decoration:
+                                const InputDecoration(labelText: "Last Name"),
+                            validator: (v) =>
+                                v == null || v.isEmpty ? 'Required' : null,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Password
+                    TextFormField(
+                      controller: p,
+                      decoration: const InputDecoration(labelText: "Password"),
+                      obscureText: true,
+                      onChanged: check,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Required';
+                        if (s < 1) return 'Password too weak';
+                        return null;
+                      },
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    // Strength bar
                     AnimatedContainer(
-                      duration: const Duration(milliseconds:300),
+                      duration: const Duration(milliseconds: 300),
                       height: 8,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
@@ -106,16 +237,22 @@ class _RegisterPageState extends State<RegisterPage> {
                         child: Container(
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            color: s<0.4?Colors.red:s<1?Colors.orange:Colors.green
+                            color: s < 0.4
+                                ? Colors.red
+                                : s < 1
+                                    ? Colors.orange
+                                    : Colors.green,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height:10),
+
+                    const SizedBox(height: 10),
+
                     Wrap(
                       spacing: 12,
                       runSpacing: 4,
-                      children:[
+                      children: [
                         _tag("8+ chars", chk['len']!),
                         _tag("Uppercase", chk['upper']!),
                         _tag("Lowercase", chk['lower']!),
@@ -123,16 +260,34 @@ class _RegisterPageState extends State<RegisterPage> {
                         _tag("Special", chk['special']!),
                       ],
                     ),
-                    const SizedBox(height:16),
-                    TextFormField(controller:c,decoration:const InputDecoration(labelText:"Confirm Password"),obscureText:true,
-                      validator:(v)=>v!=p.text?'Does not match':null),
-                    const SizedBox(height:28),
-                    loading?const Center(child:CircularProgressIndicator()):FilledButton(
-                      onPressed: submit,
-                      style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
-                      child: const Text("Register"),
+
+                    const SizedBox(height: 16),
+
+                    // Confirm Password
+                    TextFormField(
+                      controller: c,
+                      decoration:
+                          const InputDecoration(labelText: "Confirm Password"),
+                      obscureText: true,
+                      validator: (v) => v != p.text ? 'Does not match' : null,
                     ),
-                    TextButton(onPressed: widget.onBackToLogin, child: const Text("Back to login")),
+
+                    const SizedBox(height: 28),
+
+                    // Register Button
+                    loading
+                        ? const Center(child: CircularProgressIndicator())
+                        : FilledButton(
+                            onPressed: submit,
+                            style: FilledButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 50)),
+                            child: const Text("Register"),
+                          ),
+
+                    TextButton(
+                      onPressed: widget.onBackToLogin,
+                      child: const Text("Back to login"),
+                    ),
                   ],
                 ),
               ),
@@ -143,14 +298,20 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _tag(String t, bool ok){
+  Widget _tag(String t, bool ok) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal:10, vertical:6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: ok?Colors.green.withOpacity(.15):Colors.grey.withOpacity(.15),
+        color:
+            ok ? Colors.green.withOpacity(.15) : Colors.grey.withOpacity(.15),
       ),
-      child: Text(t, style: TextStyle(color: ok?Colors.green:Colors.grey[700], fontSize:13)),
+      child: Text(
+        t,
+        style: TextStyle(
+            color: ok ? Colors.green : Colors.grey[700], fontSize: 13),
+      ),
     );
   }
 }
+ 
