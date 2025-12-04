@@ -1,0 +1,34 @@
+name: ccd
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  # Broad, compatible constraint for recent Flutter/Dart toolchains.
+  # If you get an SDK version error, either update your Flutter or adjust this range.
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # UI
+  cupertino_icons: ^1.0.8
+
+  # Firebase (put these under dependencies)
+  firebase_core: ^4.2.1
+  firebase_auth: ^6.1.2
+  cloud_firestore: ^6.1.0
+  intl: ^0.20.2
+  pdf: ^3.10.4
+  path_provider: ^2.0.15
+  firebase_messaging: ^16.0.4
+  http: ^1.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

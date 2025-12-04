@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "519390265229",
+    "project_id": "ccfd-616af",
+    "storage_bucket": "ccfd-616af.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:519390265229:android:b4a1c1373490dc7177c7c4",
+        "android_client_info": {
+          "package_name": "com.example.ccd"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCthX0dt7FJbyeMjr-ikdUrNbj6rywBvAQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
