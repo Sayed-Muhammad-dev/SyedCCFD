@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'onboarding_screen_1.dart';
 import 'onboarding_screen_2.dart';
 import 'onboarding_screen_3.dart';
@@ -56,11 +57,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
       };
 
       // Save to Firestore
-      await _firebaseService.saveOnboardingData(allData);
+      // await _firebaseService.saveOnboardingData(allData);
 
       if (mounted) {
-        // Navigate to dashboard
-        Navigator.pushReplacementNamed(context, '/dashboard');
+        // Navigate to dashboard using GetX
+        Get.offAllNamed('/dashboard');
       }
     } catch (e) {
       if (mounted) {
@@ -127,4 +128,3 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 }
-

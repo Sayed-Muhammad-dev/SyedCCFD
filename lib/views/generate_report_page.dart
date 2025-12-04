@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
+import 'package:open_filex/open_filex.dart';
 import 'dart:io';
 
 class GenerateReportPage extends StatefulWidget {
@@ -15,6 +16,7 @@ class GenerateReportPage extends StatefulWidget {
 class _GenerateReportPageState extends State<GenerateReportPage> {
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+
   bool _loading = true;
   int totalTransactions = 0;
   int fraudulentTransactions = 0;
@@ -32,22 +34,39 @@ class _GenerateReportPageState extends State<GenerateReportPage> {
   Future<void> _loadReportData() async {
     final user = _auth.currentUser;
     if (user == null) return;
+
     // Transactions
-    final txSnap = await _firestore.collection('transactions').where('userId', isEqualTo: user.uid).get();
+    final txSnap = await _firestore
+        .collection('transactions')
+        .where('userId', isEqualTo: user.uid)
+        .get();
     totalTransactions = txSnap.docs.length;
+
     // Fraudulent Transactions
-    final fraudSnap = await _firestore.collection('fraud_reports').where('userId', isEqualTo: user.uid).get();
+    final fraudSnap = await _firestore
+        .collection('fraud_reports')
+        .where('userId', isEqualTo: user.uid)
+        .get();
     fraudulentTransactions = fraudSnap.docs.length;
+
     // Cards
-    final cardsSnap = await _firestore.collection('users').doc(user.uid).collection('cards').get();
+    final cardsSnap = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('cards')
+        .get();
+
     frozenCards = 0;
     activeCards = 0;
     frozenCardLast4.clear();
     activeCardLast4.clear();
+
     for (final doc in cardsSnap.docs) {
       final card = doc.data();
       final cardNumber = card['cardNumber'] ?? '';
-      final last4 = cardNumber.length >= 4 ? cardNumber.substring(cardNumber.length - 4) : cardNumber;
+      final last4 = cardNumber.length >= 4
+          ? cardNumber.substring(cardNumber.length - 4)
+          : cardNumber;
       final status = card['status'] ?? 'active';
       if (status == 'frozen') {
         frozenCards++;
@@ -57,37 +76,62 @@ class _GenerateReportPageState extends State<GenerateReportPage> {
         activeCardLast4.add(last4);
       }
     }
+
     setState(() => _loading = false);
   }
 
   Future<void> _downloadPdf() async {
     final pdf = pw.Document();
+
     pdf.addPage(
       pw.Page(
         build: (pw.Context context) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text('User Report', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+            pw.Text(
+              'User Report',
+              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
+            ),
             pw.SizedBox(height: 16),
             pw.Text('Total Transactions: $totalTransactions'),
             pw.Text('Fraudulent Transactions: $fraudulentTransactions'),
-            pw.Text('Frozen Cards (${frozenCards}): ${frozenCardLast4.join(", ")}'),
-            pw.Text('Active Cards (${activeCards}): ${activeCardLast4.join(", ")}'),
+            pw.Text(
+                'Frozen Cards ($frozenCards): ${frozenCardLast4.join(", ")}'),
+            pw.Text(
+                'Active Cards ($activeCards): ${activeCardLast4.join(", ")}'),
           ],
         ),
       ),
     );
-    final output = await getTemporaryDirectory();
-    final file = File('${output.path}/user_report.pdf');
+
+    // 📂 Save file in appropriate location
+    Directory? directory;
+    if (Platform.isAndroid) {
+      directory = await getExternalStorageDirectory();
+    } else if (Platform.isIOS) {
+      directory = await getApplicationDocumentsDirectory();
+    } else {
+      directory = await getDownloadsDirectory(); // Desktop
+    }
+
+    final filePath = "${directory!.path}/user_report.pdf";
+    final file = File(filePath);
+
     await file.writeAsBytes(await pdf.save());
+
+    // ✅ Notify user
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('PDF downloaded to ${file.path}')),
+      SnackBar(content: Text('PDF saved to $filePath')),
     );
+
+    // 📖 Open the PDF automatically
+    await OpenFilex.open(filePath);
   }
 
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width > 600;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Generate Report')),
       body: _loading
@@ -96,17 +140,24 @@ class _GenerateReportPageState extends State<GenerateReportPage> {
               padding: const EdgeInsets.all(24),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: isWide ? 500 : double.infinity),
+                  constraints:
+                      BoxConstraints(maxWidth: isWide ? 500 : double.infinity),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text('Total Transactions: $totalTransactions', style: const TextStyle(fontSize: 18)),
+                      Text('Total Transactions: $totalTransactions',
+                          style: const TextStyle(fontSize: 18)),
                       const SizedBox(height: 8),
-                      Text('Fraudulent Transactions: $fraudulentTransactions', style: const TextStyle(fontSize: 18)),
+                      Text('Fraudulent Transactions: $fraudulentTransactions',
+                          style: const TextStyle(fontSize: 18)),
                       const SizedBox(height: 8),
-                      Text('Frozen Cards ($frozenCards): ${frozenCardLast4.join(", ")}', style: const TextStyle(fontSize: 18)),
+                      Text(
+                          'Frozen Cards ($frozenCards): ${frozenCardLast4.join(", ")}',
+                          style: const TextStyle(fontSize: 18)),
                       const SizedBox(height: 8),
-                      Text('Active Cards ($activeCards): ${activeCardLast4.join(", ")}', style: const TextStyle(fontSize: 18)),
+                      Text(
+                          'Active Cards ($activeCards): ${activeCardLast4.join(", ")}',
+                          style: const TextStyle(fontSize: 18)),
                       const SizedBox(height: 32),
                       ElevatedButton.icon(
                         icon: const Icon(Icons.download),

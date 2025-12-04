@@ -10,14 +10,12 @@ class FraudAlertScreen extends StatefulWidget {
 }
 
 class _FraudAlertScreenState extends State<FraudAlertScreen> {
-
-
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 800;
-    
+
     if (user == null) {
       return Scaffold(
         backgroundColor: Colors.grey[50],
@@ -49,7 +47,7 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
         ),
       );
     }
-    
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -85,7 +83,7 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
               ),
             );
           }
-          
+
           if (snapshot.hasError) {
             return Center(
               child: Card(
@@ -121,9 +119,9 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
               ),
             );
           }
-          
+
           final docs = snapshot.data?.docs ?? [];
-          
+
           if (docs.isEmpty) {
             return Center(
               child: Card(
@@ -159,7 +157,7 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
               ),
             );
           }
-          
+
           return ListView.builder(
             padding: EdgeInsets.all(isWeb ? 32 : 16),
             itemCount: docs.length,
@@ -172,17 +170,18 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
               final amount = alert['amount']?.toString() ?? '0';
               final cardId = alert['cardId'] ?? '';
               final createdAt = alert['createdAt'];
-              
+
               String timeStr = '';
               if (createdAt != null) {
                 try {
                   final timestamp = createdAt.toDate();
-                  timeStr = '${timestamp.day}/${timestamp.month}/${timestamp.year} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
+                  timeStr =
+                      '${timestamp.day}/${timestamp.month}/${timestamp.year} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}';
                 } catch (e) {
                   timeStr = 'Recent';
                 }
               }
-              
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 16),
                 child: Card(
@@ -190,7 +189,9 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                     side: BorderSide(
-                      color: status == 'unread' ? Colors.red[300]! : Colors.grey[300]!,
+                      color: status == 'unread'
+                          ? Colors.red[300]!
+                          : Colors.grey[300]!,
                       width: status == 'unread' ? 2 : 1,
                     ),
                   ),
@@ -239,12 +240,17 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
                               ),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
-                                color: status == 'handled' ? Colors.green[50] : Colors.orange[50],
+                                color: status == 'handled'
+                                    ? Colors.green[50]
+                                    : Colors.orange[50],
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: status == 'handled' ? Colors.green[300]! : Colors.orange[300]!,
+                                  color: status == 'handled'
+                                      ? Colors.green[300]!
+                                      : Colors.orange[300]!,
                                 ),
                               ),
                               child: Text(
@@ -252,15 +258,17 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: status == 'handled' ? Colors.green[700] : Colors.orange[700],
+                                  color: status == 'handled'
+                                      ? Colors.green[700]
+                                      : Colors.orange[700],
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Transaction Details
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -270,18 +278,26 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
                           ),
                           child: Column(
                             children: [
-                              _buildDetailRow('Merchant', merchant, Icons.store),
-                              _buildDetailRow('Amount', '\$${double.tryParse(amount)?.toStringAsFixed(2) ?? amount}', Icons.attach_money),
+                              _buildDetailRow(
+                                  'Merchant', merchant, Icons.store),
+                              _buildDetailRow(
+                                  'Amount',
+                                  '\${double.tryParse(amount)?.toStringAsFixed(2) ?? amount}',
+                                  Icons.attach_money),
                               if (cardId.isNotEmpty)
-                                _buildDetailRow('Card', '****${cardId.length > 4 ? cardId.substring(cardId.length - 4) : cardId}', Icons.credit_card),
+                                _buildDetailRow(
+                                    'Card',
+                                    '****${cardId.length > 4 ? cardId.substring(cardId.length - 4) : cardId}',
+                                    Icons.credit_card),
                               if (decision.isNotEmpty)
-                                _buildDetailRow('Decision', decision, Icons.gavel),
+                                _buildDetailRow(
+                                    'Decision', decision, Icons.gavel),
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: 16),
-                        
+
                         // Risk Reasons
                         Text(
                           'Risk Factors:',
@@ -295,22 +311,26 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: reasons.map((reason) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: Colors.red[50],
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.red[200]!),
-                            ),
-                            child: Text(
-                              reason,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.red[700],
-                              ),
-                            ),
-                          )).toList(),
+                          children: reasons
+                              .map((reason) => Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red[50],
+                                      borderRadius: BorderRadius.circular(16),
+                                      border:
+                                          Border.all(color: Colors.red[200]!),
+                                    ),
+                                    child: Text(
+                                      reason,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.red[700],
+                                      ),
+                                    ),
+                                  ))
+                              .toList(),
                         ),
                       ],
                     ),
@@ -323,7 +343,7 @@ class _FraudAlertScreenState extends State<FraudAlertScreen> {
       ),
     );
   }
-  
+
   Widget _buildDetailRow(String label, String value, IconData icon) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
